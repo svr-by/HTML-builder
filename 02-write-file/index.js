@@ -8,18 +8,18 @@ try {
   const output = createWriteStream(filePath);
   const rl = createInterface({input: stdin, output: stdout});
 
-  stdout.write('Привет! Введи текст для записи в файл:\n');
+  stdout.write('Hi! Please enter the text to write to the file:\n');
 
   rl.on('line', text => {
     if (text === 'exit') {
-      stdout.write('До встречи!\n');
+      stdout.write('Goodbuy!\n');
       exit();
     }
     output.write(`${text}\n`);
   });
 
   rl.on('close', () => {
-    stdout.write('До встречи!\n');
+    stdout.write('Goodbuy!\n');
     exit();
   });
 } catch (err) {
