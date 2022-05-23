@@ -1,11 +1,26 @@
 const { promises, createWriteStream} = require('fs');
 const { join, extname, basename } = require('path');
 
-async function createDir(path) {
+async function createProjectDir(path) {
   await promises.mkdir(path, {recursive: true});
 }
 
-async function createBundle(srcPath, destPath) {
+async function createPageLayout (srcTemplPath, srcComplPath, destPath) {
+  let template = await promises.readFile(srcTemplPath, {encoding: 'utf8'});
+  let componentsFiles = await promises.readdir(srcComplPath, {withFileTypes: true});
+  for (const component of componentsFiles) {
+    if (component.isFile()) {
+      let componentInner = await promises.readFile(join(srcComplPath, component.name), {encoding: 'utf8'});
+      let componentTag = `{{${basename(component.name, extname(component.name))}}}`;
+      template = template.replace(componentTag, componentInner);
+    }
+  }
+  let resultPath = join(destPath, '/index.html');
+  let resultStream = createWriteStream(resultPath);
+  resultStream.write(template);
+}
+
+async function createStylesBundle(srcPath, destPath) {
   let bundlePath = join(destPath, '/style.css');
   let bundleStream = createWriteStream(bundlePath);
   let styles = await promises.readdir(srcPath, {withFileTypes: true});
@@ -22,31 +37,16 @@ async function createBundle(srcPath, destPath) {
   }
 }
 
-async function copyDir(srcPath, destPath) {
-  await promises.mkdir(destPath, {recursive: true});
+async function copyAssets(srcPath, destPath) {
   let inners = await promises.readdir(srcPath, {withFileTypes: true});
+  await promises.mkdir(destPath, {recursive: true});
   for (const inner of inners) {
     if (inner.isFile()) {
       await promises.copyFile(join(srcPath, inner.name), join(destPath, inner.name));
     } else if (inner.isDirectory()) {
-      copyDir(join(srcPath, inner.name), join(destPath, inner.name));
+      copyAssets(join(srcPath, inner.name), join(destPath, inner.name));
     }
   }
-}
-
-async function buildTemplate (srcTemplPath, srcComplPath, destPath) {
-  let template = await promises.readFile(srcTemplPath, {encoding: 'utf8'});
-  let componentsFiles = await promises.readdir(srcComplPath, {withFileTypes: true});
-  for (const component of componentsFiles) {
-    if (component.isFile()) {
-      let componentInner = await promises.readFile(join(srcComplPath, component.name), {encoding: 'utf8'});
-      let componentTag = `{{${basename(component.name, extname(component.name))}}}`;
-      template = template.replace(componentTag, componentInner);
-    }
-  }
-  let resultPath = join(destPath, '/index.html');
-  let resultStream = createWriteStream(resultPath);
-  resultStream.write(template);
 }
 
 try {
@@ -56,10 +56,10 @@ try {
   const stylesPath = join(__dirname, '/styles');
   const assetsPath = join(__dirname, '/assets');
 
-  createDir(projectPath);
-  buildTemplate(templatePath, componentsPath, projectPath).catch((err) => console.error(err.message));
-  createBundle(stylesPath, projectPath).catch((err) => console.error(err.message));
-  copyDir(assetsPath, join(projectPath, '/assets')).catch((err) => console.error(err.message));
+  createProjectDir(projectPath).catch((err) => console.error(err.message));
+  createPageLayout(templatePath, componentsPath, projectPath).catch((err) => console.error(err.message));
+  createStylesBundle(stylesPath, projectPath).catch((err) => console.error(err.message));
+  copyAssets(assetsPath, join(projectPath, '/assets')).catch((err) => console.error(err.message));
 
 } catch (err) {
   console.error(err.message);
