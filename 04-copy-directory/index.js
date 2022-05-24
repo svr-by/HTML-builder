@@ -1,11 +1,19 @@
 const { join } = require('path');
-const { mkdir, rm, readdir, copyFile } = require('fs/promises');
+const { mkdir, unlink, stat, readdir, copyFile } = require('fs/promises');
+
+async function deleteFiles(path) {
+  let inners = await readdir(path, {withFileTypes: true});
+  for (const inner of inners) {
+    if (inner.isFile()) {
+      await unlink(join(path, inner.name));
+    } else if (inner.isDirectory()) {
+      deleteFiles(join(path, inner.name));
+    }
+  }
+}
 
 async function copyDir(srcPath, destPath) {
-  await rm(destPath, { force: true, recursive: true});
-  console.log('Files copied');
   await mkdir(destPath, {recursive: true});
-
   let inners = await readdir(srcPath, {withFileTypes: true});
   for (const inner of inners) {
     if (inner.isFile()) {
@@ -16,10 +24,17 @@ async function copyDir(srcPath, destPath) {
   }
 }
 
+async function refreshDir(srcPath, destPath) {
+  let statDir = await stat(destPath).catch(() => null);
+  if (statDir) await deleteFiles(destPath).catch((err) => console.error('deleteFiles:', err.message));
+  await copyDir(srcPath, destPath).catch((err) => console.error('copyDir:', err.message));
+}
+
+
 try {
   const filesDirPath = join(__dirname, '/files');
   const newDirPath = join(__dirname, '/files-copy');
-  copyDir(filesDirPath, newDirPath).catch((err) => console.error(err.message));
+  refreshDir(filesDirPath, newDirPath).catch((err) => console.error('refreshDir:', err.message));
 
 } catch (err) {
   console.error(err.message);
