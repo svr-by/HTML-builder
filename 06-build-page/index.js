@@ -37,16 +37,33 @@ async function createStylesBundle(srcPath, destPath) {
   }
 }
 
-async function copyAssets(srcPath, destPath) {
-  let inners = await promises.readdir(srcPath, {withFileTypes: true});
+async function deleteFiles(path) {
+  let inners = await promises.readdir(path, {withFileTypes: true});
+  for (const inner of inners) {
+    if (inner.isFile()) {
+      await promises.unlink(join(path, inner.name));
+    } else if (inner.isDirectory()) {
+      deleteFiles(join(path, inner.name));
+    }
+  }
+}
+
+async function copyDir(srcPath, destPath) {
   await promises.mkdir(destPath, {recursive: true});
+  let inners = await promises.readdir(srcPath, {withFileTypes: true});
   for (const inner of inners) {
     if (inner.isFile()) {
       await promises.copyFile(join(srcPath, inner.name), join(destPath, inner.name));
     } else if (inner.isDirectory()) {
-      copyAssets(join(srcPath, inner.name), join(destPath, inner.name));
+      copyDir(join(srcPath, inner.name), join(destPath, inner.name));
     }
   }
+}
+
+async function refreshAssets(srcPath, destPath) {
+  let statDir = await promises.stat(destPath).catch(() => null);
+  if (statDir) await deleteFiles(destPath);
+  await copyDir(srcPath, destPath);
 }
 
 try {
@@ -56,10 +73,10 @@ try {
   const stylesPath = join(__dirname, '/styles');
   const assetsPath = join(__dirname, '/assets');
 
-  createProjectDir(projectPath).catch((err) => console.error(err.message));
-  createPageLayout(templatePath, componentsPath, projectPath).catch((err) => console.error(err.message));
-  createStylesBundle(stylesPath, projectPath).catch((err) => console.error(err.message));
-  copyAssets(assetsPath, join(projectPath, '/assets')).catch((err) => console.error(err.message));
+  createProjectDir(projectPath).catch((err) => console.error('createProjectDir:',err.message));
+  createPageLayout(templatePath, componentsPath, projectPath).catch((err) => console.error('createPageLayout:',err.message));
+  createStylesBundle(stylesPath, projectPath).catch((err) => console.error('createStylesBundle:',err.message));
+  refreshAssets(assetsPath, join(projectPath, '/assets')).catch((err) => console.error('refreshAssets:',err.message));
 
 } catch (err) {
   console.error(err.message);
