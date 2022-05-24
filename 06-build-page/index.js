@@ -60,7 +60,7 @@ async function copyDir(srcPath, destPath) {
   }
 }
 
-async function refreshAssets(srcPath, destPath) {
+async function updateAssets(srcPath, destPath) {
   let statDir = await promises.stat(destPath).catch(() => null);
   if (statDir) await deleteFiles(destPath);
   await copyDir(srcPath, destPath);
@@ -76,7 +76,7 @@ try {
   createProjectDir(projectPath).catch((err) => console.error('createProjectDir:',err.message));
   createPageLayout(templatePath, componentsPath, projectPath).catch((err) => console.error('createPageLayout:',err.message));
   createStylesBundle(stylesPath, projectPath).catch((err) => console.error('createStylesBundle:',err.message));
-  refreshAssets(assetsPath, join(projectPath, '/assets')).catch((err) => console.error('refreshAssets:',err.message));
+  updateAssets(assetsPath, join(projectPath, '/assets')).catch((err) => console.error('updateAssets:',err.message));
 
 } catch (err) {
   console.error(err.message);

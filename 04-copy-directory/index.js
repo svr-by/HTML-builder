@@ -24,7 +24,7 @@ async function copyDir(srcPath, destPath) {
   }
 }
 
-async function refreshDir(srcPath, destPath) {
+async function updateDir(srcPath, destPath) {
   let statDir = await stat(destPath).catch(() => null);
   if (statDir) await deleteFiles(destPath).catch((err) => console.error('deleteFiles:', err.message));
   await copyDir(srcPath, destPath).catch((err) => console.error('copyDir:', err.message));
@@ -34,7 +34,7 @@ async function refreshDir(srcPath, destPath) {
 try {
   const filesDirPath = join(__dirname, '/files');
   const newDirPath = join(__dirname, '/files-copy');
-  refreshDir(filesDirPath, newDirPath).catch((err) => console.error('refreshDir:', err.message));
+  updateDir(filesDirPath, newDirPath).catch((err) => console.error('updateDir:', err.message));
 
 } catch (err) {
   console.error(err.message);
